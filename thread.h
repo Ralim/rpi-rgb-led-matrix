@@ -18,7 +18,7 @@ public:
 
   // Override this.
   virtual void Run() = 0;
-    
+    bool Running;
 private:
   static void *PthreadCallRun(void *tobject);
   bool started_;

@@ -12,6 +12,7 @@ void *Thread::PthreadCallRun(void *tobject) {
 
 Thread::Thread() : started_(false) {}
 Thread::~Thread() {
+  Running=false;
   if (!started_) return;
   int result = pthread_join(thread_, NULL);
   if (result != 0) {

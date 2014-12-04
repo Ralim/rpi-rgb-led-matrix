@@ -69,87 +69,8 @@ public:
   }
 };
 
-class SimpleSquare : public RGBMatrixManipulator {
-public:
-  SimpleSquare(RGBMatrix *m) : RGBMatrixManipulator(m) {}
-  void Run() {
-    const int width = matrix_->width();
-    const int height = matrix_->height();
-    // Diagonaly
-    for (int x = 0; x < width; ++x) {
-        matrix_->SetPixel(x, x, 255, 255, 255);
-        matrix_->SetPixel(height -1 - x, x, 255, 0, 255);
-    }
-    for (int x = 0; x < width; ++x) {
-      matrix_->SetPixel(x, 0, 255, 0, 0);
-      matrix_->SetPixel(x, height - 1, 255, 255, 0);
-    }
-    for (int y = 0; y < height; ++y) {
-      matrix_->SetPixel(0, y, 0, 0, 255);
-      matrix_->SetPixel(width - 1, y, 0, 255, 0);
-    }
-  }
-};
 
-// Simple class that generates a rotating block on the screen.
-class RotatingBlockGenerator : public RGBMatrixManipulator {
-public:
-  RotatingBlockGenerator(RGBMatrix *m) : RGBMatrixManipulator(m) {}
 
-  uint8_t scale_col(int val, int lo, int hi) {
-    if (val < lo) return 0;
-    if (val > hi) return 255;
-    return 255 * (val - lo) / (hi - lo);
-  }
-
-  void Run() {
-    const int cent_x = matrix_->width() / 2;
-    const int cent_y = matrix_->height() / 2;
-
-    // The square to rotate (inner square + black frame) needs to cover the
-    // whole area, even if diagnoal.
-    const int rotate_square = min(matrix_->width(), matrix_->height()) * 1.41;
-    const int min_rotate = cent_x - rotate_square / 2;
-    const int max_rotate = cent_x + rotate_square / 2;
-
-    // The square to display is within the visible area.
-    const int display_square = min(matrix_->width(), matrix_->height()) * 0.7;
-    const int min_display = cent_x - display_square / 2;
-    const int max_display = cent_x + display_square / 2;
-
-    const float deg_to_rad = 2 * 3.14159265 / 360;
-    int rotation = 0;
-    while (running_) {
-      ++rotation;
-      usleep(15 * 1000);
-      rotation %= 360;
-      for (int x = min_rotate; x < max_rotate; ++x) {
-        for (int y = min_rotate; y < max_rotate; ++y) {
-          float disp_x, disp_y;
-          Rotate(x - cent_x, y - cent_y,
-                 deg_to_rad * rotation, &disp_x, &disp_y);
-          if (x >= min_display && x < max_display &&
-              y >= min_display && y < max_display) { // within display square
-            matrix_->SetPixel(disp_x + cent_x, disp_y + cent_y,
-                              scale_col(x, min_display, max_display),
-                              255 - scale_col(y, min_display, max_display),
-                              scale_col(y, min_display, max_display));
-          } else {
-            // black frame.
-            matrix_->SetPixel(disp_x + cent_x, disp_y + cent_y, 0, 0, 0);
-          }
-        }
-      }
-    }
-  }
-
-private:
-  void Rotate(int x, int y, float angle,
-              float *new_x, float *new_y) {
-    *new_x = x * cosf(angle) - y * sinf(angle);
-    *new_y = x * sinf(angle) + y * cosf(angle);
-  }
-};
 
 class ImageScroller : public RGBMatrixManipulator {
 public:
@@ -196,23 +117,23 @@ public:
   void Run() {
     const int screen_height = matrix_->height();
     const int screen_width = matrix_->width();
-    
+   
+    while ((int)horizontal_position_<=(width_)) {
       if (image_ == NULL) {
         usleep(100 * 1000);
         continue;
       }
-      usleep(30 * 1000);
-      for (int x = 0; x < screen_width; ++x) {
-        for (int y = 0; y < screen_height; ++y) {
-          const Pixel &p = getPixel((horizontal_position_ + x) % width_, y);
-          // Display upside down on my desk. Lets flip :)
-          int disp_x = screen_width - x;
-          int disp_y = screen_height - y;
-          matrix_->SetPixel(disp_x, disp_y, p.red, p.green, p.blue);
-        }
-      }
-      ++horizontal_position_;
-    
+      
+	      usleep(30 * 1000);
+	      for (int x = 0; x < screen_width; ++x) {
+	        for (int y = 0; y < screen_height; ++y) {
+	          const Pixel &p = getPixel((horizontal_position_ + x), y);
+	          //Note we let the x pos get bigger than width_ so that it goes black after
+	          matrix_->SetPixel(x, y, p.red, p.green, p.blue);
+	        }
+	      }
+	      ++horizontal_position_;
+    }
   }
 
 private:
@@ -233,6 +154,9 @@ private:
 
   const Pixel &getPixel(int x, int y) {
     static Pixel dummy;
+    dummy.red =0;
+    dummy.green=0;
+    dummy.blue=0;
     if (x < 0 || x > width_ || y < 0 || y > height_) return dummy;
     return image_[x + width_ * y];
   }
@@ -248,60 +172,27 @@ int main(int argc, char *argv[]) {
   if (argc > 1) {
     demo = atoi(argv[1]);
   }
-  fprintf(stderr, "Using demo %d\n", demo);
-
-  GPIO io;
+    GPIO io;
   if (!io.Init())
     return 1;
-
   RGBMatrix m(&io);
-    
-  RGBMatrixManipulator *image_gen = NULL;
-  switch (demo) {
-  case 0:
-    image_gen = new RotatingBlockGenerator(&m);
-    break;
-
-  case 1:
-    if (argc > 2) {
-      ImageScroller *scroller = new ImageScroller(&m);
-      if (!scroller->LoadPPM(argv[2]))
-        return 1;
-      image_gen = scroller;
-    } else {
-      fprintf(stderr, "Demo %d Requires PPM image as parameter", demo);
-      return 1;
-    }
-    break;
-
-  case 2:
-    image_gen = new SimpleSquare(&m);
-    break;
-
-  default:
-    image_gen = new ColorPulseGenerator(&m);
-    break;
-  }
-
-  if (image_gen == NULL)
-    return 1;
-
-  RGBMatrixManipulator *updater = new DisplayUpdater(&m);
+      RGBMatrixManipulator *updater = new DisplayUpdater(&m);
   updater->Start(10);  // high priority
 
-  image_gen->Start();
+ImageScroller *scroller = new ImageScroller(&m);
+if (!scroller->LoadPPM(argv[1]))
+        return 1;
+      scroller->Run();
 
-  // Things are set up. Just wait for <RETURN> to be pressed.
- 
 
   // Stopping threads and wait for them to join.
-  delete image_gen;
+  
   delete updater;
 
   // Final thing before exit: clear screen and update once, so that
   // we don't have random pixels burn
   m.ClearScreen();
-  m.UpdateScreen();
+  m.UpdateScreen();//send black update
 
   return 0;
 }

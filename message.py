@@ -3,7 +3,7 @@ from PIL import ImageFont
 from PIL import Image
 from PIL import ImageDraw
 
-text = (("Raspberry Pi ", (255, 0, 0)), ("and ", (0, 255, 0)), ("Adafruit", (0, 0, 255)))
+text = (("RalimTek ", (128, 0, 128)), ("Sign ", (0, 255, 0)), ("Scroller", (0, 128, 128)))
 
 
 font = ImageFont.truetype("/usr/share/fonts/truetype/freefont/FreeSans.ttf", 16)
@@ -30,4 +30,4 @@ for text_color_pair in text:
 
 im.save("test.ppm")
 
-os.system("./led-matrix 1 test.ppm")
+os.system("./led-matrix test.ppm")
