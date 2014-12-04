@@ -196,7 +196,7 @@ public:
   void Run() {
     const int screen_height = matrix_->height();
     const int screen_width = matrix_->width();
-    while (running_) {
+    
       if (image_ == NULL) {
         usleep(100 * 1000);
         continue;
@@ -212,7 +212,7 @@ public:
         }
       }
       ++horizontal_position_;
-    }
+    
   }
 
 private:
@@ -292,8 +292,7 @@ int main(int argc, char *argv[]) {
   image_gen->Start();
 
   // Things are set up. Just wait for <RETURN> to be pressed.
-  printf("Press <RETURN> to exit and reset LEDs\n");
-  getchar();
+ 
 
   // Stopping threads and wait for them to join.
   delete image_gen;
