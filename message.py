@@ -1,9 +1,12 @@
 import os
+import sys
 from PIL import ImageFont
 from PIL import Image
 from PIL import ImageDraw
-
-text = (("RalimTek ", (128, 0, 128)), ("Sign ", (0, 255, 0)), ("Scroller", (0, 128, 128)))
+dull = 0.4
+textraw = " ".join(sys.argv[1:])
+txtSplit = textraw.partition(">")
+text = ((txtSplit[0], (0, (int)(dull*64), 0)),(txtSplit[1], (0, (int)(dull*64), 0)),(txtSplit[2], ((int)(dull*64), (int)(dull*64), (int)(dull*64))))
 
 
 font = ImageFont.truetype("/usr/share/fonts/truetype/freefont/FreeSans.ttf", 16)
